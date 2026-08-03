@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Livestock Disease Detection",
+    "slug": "livestock-disease-detection",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES"]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can select a livestock photo for diagnosis.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera so you can photograph an animal for diagnosis."
+        }
+      ]
+    ]
+  }
+}
