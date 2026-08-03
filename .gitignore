@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# Uploads / models
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.h5
+*.pkl
+
+# Node / Expo
+node_modules/
+.expo/
+npm-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
