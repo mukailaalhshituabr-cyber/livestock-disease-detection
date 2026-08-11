@@ -4,9 +4,9 @@ early by photographing a sick animal and getting an instant, AI-generated diagno
 
 Overview
 
-- ""Problem:"" Livestock diseases are often caught too late because
+- Problem: Livestock diseases are often caught too late because
   veterinary services are far away, causing farmers to lose animals and income.
-- ""Solution:"" A farmer photographs their animal in the app. The photo is
+- Solution: A farmer photographs their animal in the app. The photo is
   first checked to confirm it's actually an animal, then a CNN
   (Convolutional Neural Network) classifies it into a known disease and
   gives a confidence score and recommendation. A veterinarian can later
@@ -52,7 +52,7 @@ fix and all disease reference rows). Summary of tables:
 | Table | Purpose |
 |---|---|
 | `regions` | Niger's 8 administrative regions (reference data) |
-| `profiles` | Extends Supabase's `auth.users` with first/last name, ""role"" (farmer/veterinarian/admin), region, phone |
+| `profiles` | Extends Supabase's `auth.users` with first/last name, role (farmer/veterinarian/admin), region, phone |
 | `farms` | A farmer's farm(s), name, region, GPS |
 | `animals` | Livestock owned by a farm, species, breed, tag ID, sex, DOB |
 | `diseases` | Reference table: disease name, symptoms, recommended action, severity |
@@ -76,19 +76,19 @@ How Detection Works
 When a photo is submitted to `/api/predict`, it goes through two stages
 (`backend/app/ml/model.py`):
 
-1. ""Animal-detection gate."" The photo is run through MobileNetV2
+1. Animal-detection gate. The photo is run through MobileNetV2
    "pretrained on ImageNet as-is", no extra training data needed. ImageNet's
    1000 classes are ordered so all animal categories occupy indices 0–397;
    the code sums the model's predicted probability across just those
    indices. If that "animalness" score is too low, the photo is rejected
    (e.g. a photo of a wall, a person, a document) before the disease model
    ever sees it.
-2. ""Disease classification."" If it passed the gate, the photo goes through
+2. Disease classification. If it passed the gate, the photo goes through
    the custom-trained model: MobileNetV2's convolutional base (frozen,
    pretrained) → `GlobalAveragePooling2D` → `Dense(128, relu)` →
    `Dropout(0.3)` → `Dense(softmax)`. Only this small head was trained on
    the labeled dataset in `backend/data/`.
-3. ""Confidence & uncertainty check."" Alongside the top prediction, the
+3. Confidence & uncertainty check. Alongside the top prediction, the
    code checks the margin between the top-2 class probabilities. A result
    with a narrow margin (the model is basically torn between two classes)
    is flagged `uncertain`, even if the raw confidence number looks
@@ -106,11 +106,11 @@ Training the Model
 The training script automatically supports any number of classes, it
 reads whatever subfolders exist under `--data-dir`, trains, and saves a
 `<output>.classes.json` sidecar recording the class order, so `model.py`
-always maps predictions back to the right disease names. ""Subfolder names
-must exactly match the `name` column in the `diseases` table""
+always maps predictions back to the right disease names. Subfolder names
+must exactly match the `name` column in the `diseases` table
 (`database/schema.sql`).
 
-⚠️ ""Current limitation:"" the model can only predict the classes it was
+⚠️ Current limitation: the model can only predict the classes it was
 trained on. `diseases` also lists Foot and Mouth Disease, Mastitis, and
 Bovine Respiratory Disease, but there's no training data for them yet, so
 the model can never output those labels until labeled image sets are added
@@ -136,16 +136,16 @@ Security Features
 
 Ethical Considerations (for our report)
 
-- ""Transparency:"" every prediction shows a confidence score and the model's
+- Transparency: every prediction shows a confidence score and the model's
   full probability breakdown, not just a single verdict; low-confidence or
   ambiguous results are explicitly labeled uncertain rather than asserted.
-- ""Human oversight:"" the `vet_reviews` table lets a real veterinarian
+- Human oversight: the `vet_reviews` table lets a real veterinarian
   confirm or correct any AI diagnosis, the system never has the final word.
-- ""Fairness/bias:"" disease classes and symptoms are documented in the
+- Fairness/bias: disease classes and symptoms are documented in the
   `diseases` table; note in our report which species/breeds/diseases the
   training data does and doesn't cover (currently only cattle, only 2 of 5
   listed diseases).
-- ""Privacy:"" each farmer's animals and images are access-controlled by RLS
+- Privacy: each farmer's animals and images are access-controlled by RLS
   and Storage policies, not visible to other farmers.
 
 AI Tool Declaration
