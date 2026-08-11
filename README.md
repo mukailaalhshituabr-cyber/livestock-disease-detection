@@ -2,7 +2,7 @@
 An AI-powered mobile app that helps farmers in Niger detect livestock diseases
 early by photographing a sick animal and getting an instant, AI-generated diagnosis with a confidence score and next-step recommendation.
 
-## Overview
+Overview
 
 - ""Problem:"" Livestock diseases are often caught too late because
   veterinary services are far away, causing farmers to lose animals and income.
@@ -12,7 +12,7 @@ early by photographing a sick animal and getting an instant, AI-generated diagno
   gives a confidence score and recommendation. A veterinarian can later
   review and confirm or correct any AI diagnosis.
 
-## Architecture
+Architecture
 
 ```
 React Native App (Expo)
@@ -31,7 +31,7 @@ receive an image and an auth token, verify the token, run the two-stage
 model pipeline, and return a prediction, it never stores anything
 permanently (the app writes the result to Supabase itself).
 
-## Tech Stack
+Tech Stack
 
 | Layer | Technology | Role |
 |---|---|---|
@@ -44,7 +44,7 @@ permanently (the app writes the result to Supabase itself).
 | AI safeguard | MobileNetV2 (pretrained ImageNet, unmodified) | "Is this even an animal?" gate |
 | Image handling | Pillow, NumPy | Decoding/resizing images, tensor math |
 
-## Database Design
+Database Design
 
 See `database/schema.sql` (single source of truth, includes the RLS-recursion
 fix and all disease reference rows). Summary of tables:
@@ -70,8 +70,8 @@ Other SQL files:
 - `database/storage_setup.sql`, Supabase Storage bucket + access policies for livestock photos.
 - `database/backfill_missing_profiles.sql`, repair script for any `auth.users` row that's missing its matching `profiles` row.
 
-## Setup Instructions
-## How Detection Works
+Setup Instructions
+How Detection Works
 
 When a photo is submitted to `/api/predict`, it goes through two stages
 (`backend/app/ml/model.py`):
@@ -94,7 +94,7 @@ When a photo is submitted to `/api/predict`, it goes through two stages
    is flagged `uncertain`, even if the raw confidence number looks
    passable, rather than asserting a false-confident answer.
 
-## Training the Model
+Training the Model
 
 `backend/data/` currently has:
 
@@ -119,7 +119,7 @@ Bovine Respiratory Disease are not strongly visual diseases (BRD is
 diagnosed mainly from coughing/breathing/behavior), a photo-only CNN may
 have an inherent ceiling on those regardless of dataset size.
 
-## Security Features
+Security Features
 
 - Supabase Auth: email/password + email OTP verification, password reset,
   logout, JWT session tokens (industry standard, not hand-rolled).
@@ -134,7 +134,7 @@ have an inherent ceiling on those regardless of dataset size.
   safeguards, the model doesn't force a confident-sounding answer onto
   clearly out-of-scope photos or genuinely ambiguous cases.
 
-## Ethical Considerations (for our report)
+Ethical Considerations (for our report)
 
 - ""Transparency:"" every prediction shows a confidence score and the model's
   full probability breakdown, not just a single verdict; low-confidence or
@@ -148,13 +148,13 @@ have an inherent ceiling on those regardless of dataset size.
 - ""Privacy:"" each farmer's animals and images are access-controlled by RLS
   and Storage policies, not visible to other farmers.
 
-## AI Tool Declaration
+AI Tool Declaration
 
 This project's code scaffolding (the animal-detection gate, and
 confidence/uncertainty handling) was generated with assistance from claude code, and fixing multiple errors that we couldn't identify ourselves.
 
 
-## Project Structure
+Project Structure
 
 ```
 livestock-disease-detection/
