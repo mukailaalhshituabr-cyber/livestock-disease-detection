@@ -11,32 +11,46 @@ import { supabase, INFERENCE_API_URL } from '../lib/supabase';
 import { showAlert } from '../lib/alert';
 
 export default function DetectionScreen() {
-  const [animals, setAnimals] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [selectedFarmId, setSelectedFarmId] = useState(null);
   const [selectedAnimalId, setSelectedAnimalId] = useState(null);
   const [image, setImage] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingAnimals, setLoadingAnimals] = useState(true);
 
-  const loadAnimals = useCallback(async () => {
+  const loadFarms = useCallback(async () => {
     setLoadingAnimals(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Animals nested under their farm so switching the farm picker doesn't
+    // need a second round trip - just filter what's already loaded.
     const { data, error } = await supabase
-      .from('animals')
-      .select('id, tag_id, species, farms!inner(owner_id)')
-      .eq('farms.owner_id', user.id)
+      .from('farms')
+      .select('id, farm_name, animals(id, tag_id, species)')
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setAnimals(data);
-      if (data.length && !selectedAnimalId) setSelectedAnimalId(data[0].id);
+      setFarms(data);
+      setSelectedFarmId((current) => current ?? (data.length ? data[0].id : null));
     }
     setLoadingAnimals(false);
-  }, [selectedAnimalId]);
+  }, []);
 
-  useEffect(() => { loadAnimals(); }, []);
+  useEffect(() => { loadFarms(); }, [loadFarms]);
+
+  const selectedFarm = farms.find((f) => f.id === selectedFarmId);
+  const animalsInSelectedFarm = selectedFarm?.animals || [];
+
+  // Whenever the selected farm changes (including on initial load), make
+  // sure the selected animal still actually belongs to it.
+  useEffect(() => {
+    if (!animalsInSelectedFarm.some((a) => a.id === selectedAnimalId)) {
+      setSelectedAnimalId(animalsInSelectedFarm[0]?.id ?? null);
+    }
+  }, [selectedFarmId, animalsInSelectedFarm]);
 
   const pickImage = async () => {
     try {
@@ -61,13 +75,10 @@ export default function DetectionScreen() {
 
   const takePhoto = async () => {
     try {
-      if (Platform.OS === 'web') {
-        showAlert(
-          'Camera Not Available',
-          'Most desktop browsers have no camera capture UI. Use "Gallery" here, or test the camera on a phone via Expo Go.'
-        );
-        return;
-      }
+      // requestCameraPermissionsAsync() is a no-op on web - the browser
+      // shows its own permission prompt when launchCameraAsync() below
+      // actually tries to access the camera, so this only matters on
+      // native (iOS/Android).
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         showAlert('Permission Required', 'Please allow access to your camera in your phone\'s Settings for Expo Go');
@@ -198,16 +209,32 @@ export default function DetectionScreen() {
 
       {loadingAnimals ? (
         <ActivityIndicator color="#27ae60" />
-      ) : animals.length === 0 ? (
-        <Text style={styles.emptyText}>No animals registered yet. Add one in "My Farm".</Text>
+      ) : farms.length === 0 ? (
+        <Text style={styles.emptyText}>No farms registered yet. Add one in "My Farm".</Text>
       ) : (
-        <View style={styles.pickerWrapper}>
-          <Picker selectedValue={selectedAnimalId} onValueChange={setSelectedAnimalId}>
-            {animals.map((a) => (
-              <Picker.Item key={a.id} label={`#${a.tag_id} (${a.species})`} value={a.id} />
-            ))}
-          </Picker>
-        </View>
+        <>
+          <Text style={styles.pickerLabel}>Farm</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker selectedValue={selectedFarmId} onValueChange={setSelectedFarmId}>
+              {farms.map((f) => (
+                <Picker.Item key={f.id} label={f.farm_name} value={f.id} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.pickerLabel}>Animal</Text>
+          {animalsInSelectedFarm.length === 0 ? (
+            <Text style={styles.emptyText}>No animals on this farm yet. Add one in "My Farm".</Text>
+          ) : (
+            <View style={styles.pickerWrapper}>
+              <Picker selectedValue={selectedAnimalId} onValueChange={setSelectedAnimalId}>
+                {animalsInSelectedFarm.map((a) => (
+                  <Picker.Item key={a.id} label={`#${a.tag_id} (${a.species})`} value={a.id} />
+                ))}
+              </Picker>
+            </View>
+          )}
+        </>
       )}
 
       <View style={styles.imageContainer}>
@@ -291,6 +318,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', color: '#2c3e50' },
   subtitle: { fontSize: 13, color: '#7f8c8d', marginTop: 4 },
   emptyText: { textAlign: 'center', color: '#95a5a6', marginBottom: 16 },
+  pickerLabel: { fontSize: 13, fontWeight: '600', color: '#7f8c8d', marginBottom: 6 },
   pickerWrapper: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginBottom: 16, backgroundColor: '#fff' },
   imageContainer: { backgroundColor: '#fff', borderRadius: 12, height: 260, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   image: { width: '100%', height: '100%', borderRadius: 12, resizeMode: 'contain' },
