@@ -3,10 +3,10 @@
 "Course/module, student name(s), and submission date are here."
 
 This system gives farmers an AI-generated opinion about a potentially sick
-animal. Getting it wrong has real consequences — a missed disease can mean
+animal. Getting it wrong has real consequences, a missed disease can mean
 losing an animal or a farmer's livelihood; a false alarm can mean wasted
 time and money. Use the prompts below to write a genuine analysis, not just
-a checklist — for each section, argue "why" the current design is (or
+a checklist, for each section, argue "why" the current design is (or
 isn't) good enough, and what the actual risk is if it fails.
 
 ## 1. Transparency
@@ -56,7 +56,7 @@ and admins have broader read access for review purposes."
 ## 5. Accountability & Harm
 
 - If a farmer loses an animal after trusting an incorrect AI diagnosis,
-  who is responsible — the developers, the vet who didn't review it in
+  who is responsible, the developers, the vet who didn't review it in
   time, the farmer, no one?
 - What safeguard in the current design most reduces this risk, and where
   is that safeguard still insufficient?
