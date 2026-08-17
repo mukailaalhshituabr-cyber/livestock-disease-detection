@@ -2,6 +2,7 @@
 An AI-powered mobile app that helps farmers in Niger detect livestock diseases
 early by photographing a sick animal and getting an instant, AI-generated diagnosis with a confidence score and next-step recommendation.
 
+Link to app: https://livestock-disease-detection.vercel.app 
 Overview
 
 - Problem: Livestock diseases are often caught too late because
@@ -151,7 +152,7 @@ Ethical Considerations (for our report)
 AI Tool Declaration
 
 This project's code scaffolding (the animal-detection gate, and
-confidence/uncertainty handling) was generated with assistance from claude code, and fixing multiple errors that we couldn't identify ourselves.
+confidence/uncertainty handling) was generated with assistance from chat AI, and fixing multiple errors that we couldn't identify ourselves.
 
 
 Project Structure
@@ -206,3 +207,4 @@ livestock-disease-detection/
         ├── HistoryScreen.js          , past predictions + vet reviews
         └── ProfileScreen.js          , account info + log out
 ```
+Link to app: https://livestock-disease-detection.vercel.app 
