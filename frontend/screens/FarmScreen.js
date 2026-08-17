@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '../lib/supabase';
-import { showAlert } from '../lib/alert';
+import { showAlert, showConfirm } from '../lib/alert';
 
 const SPECIES = ['goat', 'sheep', 'camel', 'cow'];
 
@@ -15,9 +15,11 @@ export default function FarmScreen() {
   const [animalsByFarm, setAnimalsByFarm] = useState({});
 
   const [showFarmModal, setShowFarmModal] = useState(false);
+  const [editingFarmId, setEditingFarmId] = useState(null);
   const [farmName, setFarmName] = useState('');
 
   const [showAnimalModal, setShowAnimalModal] = useState(false);
+  const [editingAnimalId, setEditingAnimalId] = useState(null);
   const [activeFarmId, setActiveFarmId] = useState(null);
   const [tagId, setTagId] = useState('');
   const [species, setSpecies] = useState(SPECIES[0]);
@@ -57,26 +59,71 @@ export default function FarmScreen() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleAddFarm = async () => {
+  // --- Farm: add / edit / delete ---
+
+  const openAddFarm = () => {
+    setEditingFarmId(null);
+    setFarmName('');
+    setShowFarmModal(true);
+  };
+
+  const openEditFarm = (farm) => {
+    setEditingFarmId(farm.id);
+    setFarmName(farm.farm_name);
+    setShowFarmModal(true);
+  };
+
+  const handleSaveFarm = async () => {
     if (!farmName.trim()) {
       showAlert('Error', 'Enter a farm name');
       return;
     }
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('farms').insert({
-      owner_id: user.id,
-      farm_name: farmName.trim(),
-    });
-    if (error) {
-      showAlert('Error', error.message);
-      return;
+
+    if (editingFarmId) {
+      const { error } = await supabase
+        .from('farms')
+        .update({ farm_name: farmName.trim() })
+        .eq('id', editingFarmId);
+      if (error) {
+        showAlert('Error', error.message);
+        return;
+      }
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('farms').insert({
+        owner_id: user.id,
+        farm_name: farmName.trim(),
+      });
+      if (error) {
+        showAlert('Error', error.message);
+        return;
+      }
     }
-    setFarmName('');
+
     setShowFarmModal(false);
     loadData();
   };
 
+  const handleDeleteFarm = (farm) => {
+    showConfirm(
+      'Delete Farm',
+      `Delete "${farm.farm_name}" and all its animals? This cannot be undone.`,
+      async () => {
+        const { error } = await supabase.from('farms').delete().eq('id', farm.id);
+        if (error) {
+          showAlert('Error', error.message);
+          return;
+        }
+        loadData();
+      },
+      'Delete'
+    );
+  };
+
+  // --- Animal: add / edit / delete ---
+
   const openAddAnimal = (farmId) => {
+    setEditingAnimalId(null);
     setActiveFarmId(farmId);
     setTagId('');
     setBreed('');
@@ -85,24 +132,68 @@ export default function FarmScreen() {
     setShowAnimalModal(true);
   };
 
-  const handleAddAnimal = async () => {
+  const openEditAnimal = (animal, farmId) => {
+    setEditingAnimalId(animal.id);
+    setActiveFarmId(farmId);
+    setTagId(animal.tag_id);
+    setBreed(animal.breed || '');
+    setSpecies(animal.species);
+    setSex(animal.sex);
+    setShowAnimalModal(true);
+  };
+
+  const handleSaveAnimal = async () => {
     if (!tagId.trim()) {
       showAlert('Error', 'Enter a tag ID for the animal');
       return;
     }
-    const { error } = await supabase.from('animals').insert({
-      farm_id: activeFarmId,
-      tag_id: tagId.trim(),
-      species,
-      breed: breed.trim() || null,
-      sex,
-    });
-    if (error) {
-      showAlert('Error', error.message);
-      return;
+
+    if (editingAnimalId) {
+      const { error } = await supabase
+        .from('animals')
+        .update({
+          tag_id: tagId.trim(),
+          species,
+          breed: breed.trim() || null,
+          sex,
+        })
+        .eq('id', editingAnimalId);
+      if (error) {
+        showAlert('Error', error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('animals').insert({
+        farm_id: activeFarmId,
+        tag_id: tagId.trim(),
+        species,
+        breed: breed.trim() || null,
+        sex,
+      });
+      if (error) {
+        showAlert('Error', error.message);
+        return;
+      }
     }
+
     setShowAnimalModal(false);
     loadData();
+  };
+
+  const handleDeleteAnimal = (animal) => {
+    showConfirm(
+      'Delete Animal',
+      `Delete animal #${animal.tag_id}? This cannot be undone.`,
+      async () => {
+        const { error } = await supabase.from('animals').delete().eq('id', animal.id);
+        if (error) {
+          showAlert('Error', error.message);
+          return;
+        }
+        loadData();
+      },
+      'Delete'
+    );
   };
 
   if (loading) {
@@ -120,7 +211,7 @@ export default function FarmScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={
-          <TouchableOpacity style={styles.addFarmButton} onPress={() => setShowFarmModal(true)}>
+          <TouchableOpacity style={styles.addFarmButton} onPress={openAddFarm}>
             <Text style={styles.addFarmButtonText}>+ Add New Farm</Text>
           </TouchableOpacity>
         }
@@ -130,14 +221,34 @@ export default function FarmScreen() {
         renderItem={({ item: farm }) => (
           <View style={styles.farmCard}>
             <View style={styles.farmHeader}>
-              <Text style={styles.farmName}>{farm.farm_name}</Text>
-              {farm.regions?.name ? <Text style={styles.farmRegion}>{farm.regions.name}</Text> : null}
+              <View style={styles.farmTitleGroup}>
+                <Text style={styles.farmName}>{farm.farm_name}</Text>
+                {farm.regions?.name ? <Text style={styles.farmRegion}>{farm.regions.name}</Text> : null}
+              </View>
+              <View style={styles.farmActions}>
+                <TouchableOpacity onPress={() => openEditFarm(farm)} style={styles.iconButton}>
+                  <Text style={styles.iconButtonText}>✏️</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteFarm(farm)} style={styles.iconButton}>
+                  <Text style={styles.iconButtonText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {(animalsByFarm[farm.id] || []).map((animal) => (
               <View key={animal.id} style={styles.animalRow}>
-                <Text style={styles.animalTag}>#{animal.tag_id}</Text>
-                <Text style={styles.animalSpecies}>{animal.species} · {animal.sex}{animal.breed ? ` · ${animal.breed}` : ''}</Text>
+                <View style={styles.animalInfo}>
+                  <Text style={styles.animalTag}>#{animal.tag_id}</Text>
+                  <Text style={styles.animalSpecies}>{animal.species} · {animal.sex}{animal.breed ? ` · ${animal.breed}` : ''}</Text>
+                </View>
+                <View style={styles.farmActions}>
+                  <TouchableOpacity onPress={() => openEditAnimal(animal, farm.id)} style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>✏️</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteAnimal(animal)} style={styles.iconButton}>
+                    <Text style={styles.iconButtonText}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
 
@@ -148,13 +259,13 @@ export default function FarmScreen() {
         )}
       />
 
-      {/* Add Farm Modal */}
+      {/* Add/Edit Farm Modal */}
       <Modal visible={showFarmModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>New Farm</Text>
+            <Text style={styles.modalTitle}>{editingFarmId ? 'Edit Farm' : 'New Farm'}</Text>
             <TextInput style={styles.input} placeholder="Farm name" value={farmName} onChangeText={setFarmName} />
-            <TouchableOpacity style={styles.button} onPress={handleAddFarm}>
+            <TouchableOpacity style={styles.button} onPress={handleSaveFarm}>
               <Text style={styles.buttonText}>Save</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setShowFarmModal(false)}>
@@ -164,11 +275,11 @@ export default function FarmScreen() {
         </View>
       </Modal>
 
-      {/* Add Animal Modal */}
+      {/* Add/Edit Animal Modal */}
       <Modal visible={showAnimalModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <ScrollView style={styles.modalBox}>
-            <Text style={styles.modalTitle}>New Animal</Text>
+            <Text style={styles.modalTitle}>{editingAnimalId ? 'Edit Animal' : 'New Animal'}</Text>
             <TextInput style={styles.input} placeholder="Tag ID (e.g. G-014)" value={tagId} onChangeText={setTagId} />
             <View style={styles.pickerWrapper}>
               <Picker selectedValue={species} onValueChange={setSpecies}>
@@ -182,7 +293,7 @@ export default function FarmScreen() {
                 <Picker.Item label="Male" value="male" />
               </Picker>
             </View>
-            <TouchableOpacity style={styles.button} onPress={handleAddAnimal}>
+            <TouchableOpacity style={styles.button} onPress={handleSaveAnimal}>
               <Text style={styles.buttonText}>Save</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAnimalModal(false)}>
@@ -203,9 +314,14 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: '#95a5a6', marginTop: 30 },
   farmCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
   farmHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  farmTitleGroup: { flex: 1 },
   farmName: { fontSize: 18, fontWeight: 'bold', color: '#2c3e50' },
   farmRegion: { fontSize: 13, color: '#7f8c8d' },
-  animalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  farmActions: { flexDirection: 'row' },
+  iconButton: { paddingHorizontal: 8, paddingVertical: 4 },
+  iconButtonText: { fontSize: 16 },
+  animalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  animalInfo: { flex: 1 },
   animalTag: { fontWeight: '600', color: '#34495e' },
   animalSpecies: { color: '#7f8c8d', textTransform: 'capitalize' },
   addAnimalButton: { marginTop: 10, alignSelf: 'flex-start' },

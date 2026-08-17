@@ -23,7 +23,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // On native (phone/emulator), there's no page origin to read, so this
 // still needs your computer's current LAN IP -- check `ipconfig` (Windows)
 // / `ifconfig` (Mac/Linux) if detection stops reaching the backend there.
-const NATIVE_INFERENCE_HOST = 'http://40.41.5.180:8000';
+const NATIVE_INFERENCE_HOST = 'http://192.168.137.1:8001';
 
 export const INFERENCE_API_URL =
-  Platform.OS === 'web' ? `http://${window.location.hostname}:8000` : NATIVE_INFERENCE_HOST;
+  Platform.OS === 'web' ? `http://${window.location.hostname}:8001` : NATIVE_INFERENCE_HOST;

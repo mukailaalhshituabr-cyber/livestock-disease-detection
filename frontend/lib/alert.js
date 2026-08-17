@@ -16,13 +16,13 @@ export function showAlert(title, message) {
 // Same web/native split as showAlert, but with a Cancel/Confirm choice -
 // used for destructive actions (e.g. logging out) that deserve a chance
 // to back out of.
-export function showConfirm(title, message, onConfirm) {
+export function showConfirm(title, message, onConfirm, confirmLabel = 'Confirm') {
   if (Platform.OS === 'web') {
     if (window.confirm(message ? `${title}\n\n${message}` : title)) onConfirm();
   } else {
     Alert.alert(title, message, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: onConfirm },
+      { text: confirmLabel, style: 'destructive', onPress: onConfirm },
     ]);
   }
 }
