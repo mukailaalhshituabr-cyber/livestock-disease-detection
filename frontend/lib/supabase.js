@@ -17,13 +17,19 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 // Base URL of your FastAPI inference service (the one that runs the CNN).
-// On web, the page already knows what host it was loaded from, so reuse
-// that instead of a hardcoded IP that breaks every time the computer
-// reconnects to WiFi and gets a new DHCP lease.
-// On native (phone/emulator), there's no page origin to read, so this
-// still needs your computer's current LAN IP -- check `ipconfig` (Windows)
-// / `ifconfig` (Mac/Linux) if detection stops reaching the backend there.
+// Set EXPO_PUBLIC_INFERENCE_API_URL (e.g. in a .env file, or in your
+// hosting/EAS env config) to point at a deployed backend - e.g. a
+// Hugging Face Space URL. Leave it unset for local dev and it falls back
+// to the old LAN-based behavior below.
+// On web without that var, the page already knows what host it was loaded
+// from, so reuse that instead of a hardcoded IP that breaks every time the
+// computer reconnects to WiFi and gets a new DHCP lease.
+// On native (phone/emulator) without that var, there's no page origin to
+// read, so this still needs your computer's current LAN IP -- check
+// `ipconfig` (Windows) / `ifconfig` (Mac/Linux) if detection stops
+// reaching the backend there.
 const NATIVE_INFERENCE_HOST = 'http://192.168.137.1:8001';
 
 export const INFERENCE_API_URL =
-  Platform.OS === 'web' ? `http://${window.location.hostname}:8001` : NATIVE_INFERENCE_HOST;
+  process.env.EXPO_PUBLIC_INFERENCE_API_URL ||
+  (Platform.OS === 'web' ? `http://${window.location.hostname}:8001` : NATIVE_INFERENCE_HOST);
