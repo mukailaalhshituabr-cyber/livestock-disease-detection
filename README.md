@@ -3,6 +3,8 @@ An AI-powered mobile app that helps farmers in Niger detect livestock diseases
 early by photographing a sick animal and getting an instant, AI-generated diagnosis with a confidence score and next-step recommendation.
 
 Link to app: https://livestock-disease-detection.vercel.app 
+
+
 Overview
 
 - Problem: Livestock diseases are often caught too late because
